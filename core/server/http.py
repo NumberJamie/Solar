@@ -1,9 +1,8 @@
-import contextlib
 import re
 from http import HTTPStatus, HTTPMethod
 from http.server import SimpleHTTPRequestHandler
 from os import PathLike
-from typing import Callable
+from typing import Callable, Pattern
 from urllib.parse import urlparse, parse_qs
 
 from core.templates.template import BaseTemplate
@@ -13,7 +12,7 @@ from core.values import *
 class RequestHandler(SimpleHTTPRequestHandler):
     directories: dict = {STATIC_URL: STATIC_DIR, MEDIA_URL: MEDIA_DIR}
     prefixes: list[str] = [prefix for prefix, _ in directories.items()]
-    urls: list[tuple[re.Pattern[str], Callable]] = []
+    urls: dict[Pattern, Callable] = {}
 
     def list_directory(self, path: str | PathLike[str]) -> None:
         self.send_error(HTTPStatus.NOT_FOUND)
@@ -28,11 +27,10 @@ class RequestHandler(SimpleHTTPRequestHandler):
         self.wfile.write(BaseTemplate('', {}).error(code).encode('UTF-8'))
 
     def do_GET(self) -> None:
-        with contextlib.suppress(ConnectionAbortedError, ConnectionResetError):
-            if any(self.path.startswith(pre) for pre in self.prefixes):
-                return self._handle_file_request()
-            url = urlparse(self.path)
-            self._respond(HTTPMethod.GET, url.path, url.query)
+        if any(self.path.startswith(pre) for pre in self.prefixes):
+            return self._handle_file_request()
+        url = urlparse(self.path)
+        self._respond(HTTPMethod.GET, url.path, url.query)
 
     def do_POST(self) -> None:
         query = self.rfile.read(int(self.headers['Content-Length'])).decode('utf-8')
@@ -56,14 +54,14 @@ class RequestHandler(SimpleHTTPRequestHandler):
         file.close()
 
     def _respond(self, method: str, path: str, query: str) -> None:
-        response = None
-        for route_pattern, route_class in self.urls:
+        for route_pattern, route_class in self.urls.items():
             if route_pattern.fullmatch(path):
                 response = getattr(route_class(path, parse_qs(query)), method.lower(), None)
-                break
-        if not response:
-            return self.send_error()
-        if isinstance(response(), HTTPStatus):
-            return self._send_head(response())
-        self._send_head(HTTPStatus.ACCEPTED)
-        self.wfile.write(response().encode('UTF-8'))
+                if not response:
+                    return self.send_error()
+                if isinstance(response(), HTTPStatus):
+                    return self._send_head(response())
+                self._send_head(HTTPStatus.ACCEPTED)
+                self.wfile.write(response().encode('UTF-8'))
+                return
+        self.send_error(HTTPStatus.NOT_FOUND)
