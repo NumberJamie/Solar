@@ -1,8 +1,9 @@
+import contextlib
 import re
 from http import HTTPStatus, HTTPMethod
 from http.server import SimpleHTTPRequestHandler
 from os import PathLike
-from typing import Callable, Any
+from typing import Callable
 from urllib.parse import urlparse, parse_qs
 
 from core.templates.template import BaseTemplate
@@ -15,40 +16,31 @@ class RequestHandler(SimpleHTTPRequestHandler):
     urls: list[tuple[re.Pattern[str], Callable]] = []
 
     def list_directory(self, path: str | PathLike[str]) -> None:
-        self._send_err_response(HTTPStatus.NOT_FOUND)
+        self.send_error(HTTPStatus.NOT_FOUND)
 
     def _send_head(self, status: HTTPStatus) -> None:
         self.send_response(status.value, status.phrase)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
 
-    def _send_err_response(self, status: HTTPStatus = HTTPStatus.NOT_FOUND) -> None:
-        self._send_head(status)
-        self.wfile.write(BaseTemplate('', {}).error(status).encode('UTF-8'))
+    def send_error(self, code: HTTPStatus = HTTPStatus.NOT_FOUND, message: str = None, explain: str = None) -> None:
+        self._send_head(code)
+        self.wfile.write(BaseTemplate('', {}).error(code).encode('UTF-8'))
 
     def do_GET(self) -> None:
-        if any(self.path.startswith(pre) for pre in self.prefixes):
-            return self._handle_file_request()
-        url = urlparse(self.path)
-        response = self._get_response(HTTPMethod.GET, url.path, url.query)
-        if not response:
-            return self._send_err_response()
-        self._send_head(HTTPStatus.ACCEPTED)
-        self.wfile.write(response().encode('UTF-8'))
+        with contextlib.suppress(ConnectionAbortedError, ConnectionResetError):
+            if any(self.path.startswith(pre) for pre in self.prefixes):
+                return self._handle_file_request()
+            url = urlparse(self.path)
+            self._respond(HTTPMethod.GET, url.path, url.query)
 
     def do_POST(self) -> None:
         query = self.rfile.read(int(self.headers['Content-Length'])).decode('utf-8')
-        response = self._get_response(HTTPMethod.POST, urlparse(self.path).path, query)
-        if not response:
-            return self._send_err_response()
-        self._send_head(response())
+        self._respond(HTTPMethod.POST, urlparse(self.path).path, query)
 
     def do_DELETE(self) -> None:
         url = urlparse(self.path)
-        response = self._get_response(HTTPMethod.DELETE, url.path, url.query)
-        if not response:
-            return self._send_err_response()
-        self._send_head(response())
+        self._respond(HTTPMethod.DELETE, url.path, url.query)
 
     def translate_path(self, path: str) -> str:
         for prefix, directory in self.directories.items():
@@ -56,17 +48,22 @@ class RequestHandler(SimpleHTTPRequestHandler):
                 return str(Path(directory) / path[len(prefix):].lstrip('/'))
         return super().translate_path(path)
 
-    def _handle_file_request(self):
+    def _handle_file_request(self) -> None:
         file = self.send_head()
         if not file:
             return
         self.copyfile(file, self.wfile)
         file.close()
 
-    def _get_response(self, method: str, path, query) -> Any:
+    def _respond(self, method: str, path: str, query: str) -> None:
         response = None
         for route_pattern, route_class in self.urls:
             if route_pattern.fullmatch(path):
-                continue
-            response = getattr(route_class(path, parse_qs(query)), method.lower(), None)
-        return response
+                response = getattr(route_class(path, parse_qs(query)), method.lower(), None)
+                break
+        if not response:
+            return self.send_error()
+        if isinstance(response(), HTTPStatus):
+            return self._send_head(response())
+        self._send_head(HTTPStatus.ACCEPTED)
+        self.wfile.write(response().encode('UTF-8'))
