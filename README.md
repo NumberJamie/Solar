@@ -19,7 +19,6 @@ While there are some dependencies present in the `requirements.txt`, these are n
 
 - Jinja2: The templating language used, required if no changes to the project are made.
 - MarkupSafe: Required for Jinja2.
-- pony: Not required just my preferred ORM. 
 
 ## Basic example
 
