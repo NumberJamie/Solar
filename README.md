@@ -42,14 +42,18 @@ Now that we have a url, we need to implement the HomeView class, make a new file
 from .templates import BaseTemplate
 
 class HomeView(BaseTemplate):
+    template = 'index.html' # should be in /templates
+    
     def get(self) -> str:
-        env = self.env.get_template('index.html')  # should be in /templates
-        return env.render(title=self.path[0])
+        return self.render(title=self.last)
 ```
 
 Only the `GET` requests return a `str` the other implemented methods (`DELETE`, `POST`) return a `HTTPStatus`. Naming
 your functions is also important since that in uppercase is the method of the request and therefor is responsible for 
 that request.
+
+When adding pagination, the query parameters are globally available to all templates as `{{ query }}` so filters stay 
+the same between pages and the page number increases.
 
 ## Additional info
 
@@ -57,16 +61,19 @@ In the `core/values.py` are some or the general values used:
 
 - `MEDIA_URL`: url paths starting with this endpoint will serve files.
 - `MEDIA_PATH`: absolute path to your media folder, ment for user uploaded files, photos and other general files.
-
 - `STATIC_URL`: url paths starting with this endpoint will serve these static files.
 - `STATIC_PATH`: absolute path to your static folder, ment for css, js and other general site-related files.
-
 - `TEMPLATES`: absolute path to your template folder.
 
 The `BaseTemplate` class located in the `/core/templates/template.py` has some handy things.
 
-- `self.path`: the url path as a string.
+- `self.path`: the url path split by `/` as a list.
+- `self.page`: the current page (for pagination)
+- `self.last`: last item in the path.
 - `self.query`: the url query parameters as a `dict[str:list]`.
-- When you want the get request to return an error you can `return self.send_err(HTTPStatus)`
+- `self.get_bool()`: get and convert a query item by the key and return a `bool` or `None`.
+- `self.get_str()`: get a query item by the key and return first item in the list as a `str`.
+- `self.get_bool()`: get a query item by the key and return the entire `list`.
+- When you want the get request to return an error you can `return self.send(HTTPStatus)`
 
 Handy to know is that post requests require the `application/x-www-form-urlencoded` content type.
