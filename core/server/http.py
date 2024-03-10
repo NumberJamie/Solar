@@ -1,4 +1,3 @@
-import re
 from http import HTTPStatus, HTTPMethod
 from http.server import SimpleHTTPRequestHandler
 from os import PathLike
