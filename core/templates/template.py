@@ -8,16 +8,22 @@ from core.values import TEMPLATES
 class BaseTemplate:
     template = 'error.html'
 
-    def __init__(self, path: str, query: dict):
+    def __init__(self, path: str, query: dict, params: dict):
         self.env = Environment(
             loader=FileSystemLoader(TEMPLATES),
             autoescape=select_autoescape()
         )
         self.query = query
+        self.params = self.__construct_route_params(path, params)
         self.page = int(self.query.get('page', ['1'])[0])
-        self.path = [part for part in path.split('/') if part]
-        self.last = self.path[-1] if self.path else None
         self._set_globals()
+
+    @staticmethod
+    def __construct_route_params(path: str, params: dict) -> dict:
+        path = [part for part in path.split('/') if part]
+        for name, index in params.items():
+            params[name] = path[index]
+        return params
 
     def render(self, **context) -> str:
         self._set_globals()

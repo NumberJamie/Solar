@@ -31,7 +31,8 @@ sure to import it and make it equal to the same `urls` variable.
 import re
 
 urls = [
-    (re.compile('/'), HomeView)
+    ('/home', HomeView),
+    ('/user/{token:user_id}', UserDetailView),  # example of a route with parameters
 ]
 ```
 
@@ -44,7 +45,13 @@ class HomeView(BaseTemplate):
     template = 'index.html' # should be in /templates
     
     def get(self) -> str:
-        return self.render(title=self.last)
+        return self.render()
+
+class UserDetailView(BaseTemplate):
+    template = 'user/detail.html' # should be in /templates
+    
+    def get(self) -> str:
+        return self.render(title=self.params['user_id'])  # the id passed by the url
 ```
 
 Only the `GET` requests return a `str` the other implemented methods (`DELETE`, `POST`) return a `HTTPStatus`. Naming
@@ -66,9 +73,7 @@ In the `core/values.py` are some or the general values used:
 
 The `BaseTemplate` class located in the `/core/templates/template.py` has some handy things.
 
-- `self.path`: the url path split by `/` as a list.
-- `self.page`: the current page (for pagination)
-- `self.last`: last item in the path.
+- `self.params`: all route parameters as a `dict[str:str]`, as `[key: value]`.
 - `self.query`: the url query parameters as a `dict[str:list]`.
 - `self.get_bool()`: get and convert a query item by the key and return a `bool` or `None`.
 - `self.get_str()`: get a query item by the key and return first item in the list as a `str`.

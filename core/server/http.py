@@ -1,10 +1,10 @@
 from http import HTTPStatus, HTTPMethod
 from http.server import SimpleHTTPRequestHandler
 from os import PathLike
-from typing import Callable, Pattern
 from urllib.parse import urlparse, parse_qs
 
 from core.decorators import suppress_connection_errors
+from core.server.routes import urls, url_route
 from core.templates.template import BaseTemplate
 from core.values import *
 
@@ -12,7 +12,7 @@ from core.values import *
 class RequestHandler(SimpleHTTPRequestHandler):
     directories: dict = {STATIC_URL: STATIC_DIR, MEDIA_URL: MEDIA_DIR}
     prefixes: list[str] = [prefix for prefix, _ in directories.items()]
-    urls: dict[Pattern, Callable] = {}
+    routes = url_route.construct_routes(urls)
 
     def list_directory(self, path: str | PathLike[str]) -> None:
         self.send_error(HTTPStatus.NOT_FOUND)
@@ -24,7 +24,7 @@ class RequestHandler(SimpleHTTPRequestHandler):
 
     def send_error(self, code: HTTPStatus = HTTPStatus.NOT_FOUND, message: str = None, explain: str = None) -> None:
         self._send_head(code)
-        self.wfile.write(BaseTemplate('', {}).error(code).encode('UTF-8'))
+        self.wfile.write(BaseTemplate('', {}, {}).error(code).encode('UTF-8'))
 
     @suppress_connection_errors
     def do_GET(self) -> None:
@@ -56,9 +56,10 @@ class RequestHandler(SimpleHTTPRequestHandler):
         file.close()
 
     def _respond(self, method: str, path: str, query: str) -> None:
-        for route_pattern, route_class in self.urls.items():
+        for route_pattern, meta in self.routes.items():
             if route_pattern.fullmatch(path):
-                response = getattr(route_class(path, parse_qs(query)), method.lower(), None)
+                route_class, params = meta
+                response = getattr(route_class(path, parse_qs(query), params), method.lower(), None)
                 if not response:
                     return self.send_error()
                 if isinstance(response(), HTTPStatus):
