@@ -47,6 +47,7 @@ class HomeView(BaseTemplate):
     def get(self) -> str:
         return self.render()
 
+    
 class UserDetailView(BaseTemplate):
     template = 'user/detail.html' # should be in /templates
     
@@ -77,7 +78,7 @@ The `BaseTemplate` class located in the `/core/templates/template.py` has some h
 - `self.query`: the url query parameters as a `dict[str:list]`.
 - `self.get_bool()`: get and convert a query item by the key and return a `bool` or `None`.
 - `self.get_str()`: get a query item by the key and return first item in the list as a `str`.
-- `self.get_bool()`: get a query item by the key and return the entire `list`.
+- `self.get_list()`: get a query item by the key and return the entire `list`.
 - When you want the get request to return an error you can `return self.send(HTTPStatus)`
 
 Handy to know is that post requests require the `application/x-www-form-urlencoded` content type.
