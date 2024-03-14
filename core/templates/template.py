@@ -20,10 +20,11 @@ class BaseTemplate:
 
     @staticmethod
     def __construct_route_params(path: str, params: dict) -> dict:
+        constructed_params = {}
         path = [part for part in path.split('/') if part]
         for name, index in params.items():
-            params[name] = path[index]
-        return params
+            constructed_params[name] = path[index]
+        return constructed_params
 
     def render(self, **context) -> str:
         self._set_globals()

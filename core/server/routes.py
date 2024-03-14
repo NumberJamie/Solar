@@ -35,7 +35,7 @@ class Routes:
             for index, part in enumerate(split_route):
                 self.temp_parts.append(self.__check_part(index, part))
             full_route = '/' + '/'.join(self.temp_parts)
-            self.routes[re.compile(full_route)] = (clazz, self.temp_tokens)
+            self.routes[re.compile(full_route)] = (clazz, self.temp_tokens.copy())
             self.__clear_temp()
         return self.routes
 
