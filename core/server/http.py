@@ -4,6 +4,7 @@ from os import PathLike
 from typing import Callable, Pattern
 from urllib.parse import urlparse, parse_qs
 
+from core.decorators import suppress_connection_errors
 from core.templates.template import BaseTemplate
 from core.values import *
 
@@ -25,6 +26,7 @@ class RequestHandler(SimpleHTTPRequestHandler):
         self._send_head(code)
         self.wfile.write(BaseTemplate('', {}).error(code).encode('UTF-8'))
 
+    @suppress_connection_errors
     def do_GET(self) -> None:
         if any(self.path.startswith(pre) for pre in self.prefixes):
             return self._handle_file_request()
@@ -45,6 +47,7 @@ class RequestHandler(SimpleHTTPRequestHandler):
                 return str(Path(directory) / path[len(prefix):].lstrip('/'))
         return super().translate_path(path)
 
+    @suppress_connection_errors
     def _handle_file_request(self) -> None:
         file = self.send_head()
         if not file:
