@@ -16,7 +16,6 @@ class BaseTemplate:
         self.query = query
         self.params = self.__construct_route_params(path, params)
         self.page = int(self.query.get('page', ['1'])[0])
-        self._set_globals()
 
     @staticmethod
     def __construct_route_params(path: str, params: dict) -> dict:
@@ -27,7 +26,7 @@ class BaseTemplate:
         return constructed_params
 
     def render(self, **context) -> str:
-        self._set_globals()
+        self.env.globals.update(query=self._get_page())
         return self.env.get_template(self.template).render(**context)
 
     def get_bool(self, getter: str) -> bool | None:
@@ -40,9 +39,6 @@ class BaseTemplate:
 
     def get_list(self, getter: str) -> list:
         return self.query[getter] if getter in self.query else []
-
-    def _set_globals(self) -> None:
-        self.env.globals.update(query=self._get_page())
 
     def _get_page(self) -> str:
         query_parts = [f'page={self.page + 1}']
