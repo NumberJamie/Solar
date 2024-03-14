@@ -31,7 +31,7 @@ sure to import it and make it equal to the same `urls` variable.
 import re
 
 urls = [
-    ('/home', HomeView),
+    ('/', HomeView),
     ('/user/{token:user_id}', UserDetailView),  # example of a route with parameters
 ]
 ```
