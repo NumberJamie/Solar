@@ -47,7 +47,6 @@ class RequestHandler(SimpleHTTPRequestHandler):
                 return str(Path(directory) / path[len(prefix):].lstrip('/'))
         return super().translate_path(path)
 
-    @suppress_connection_errors
     def _handle_file_request(self) -> None:
         file = self.send_head()
         if not file:
