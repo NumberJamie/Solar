@@ -55,6 +55,7 @@ class RequestHandler(SimpleHTTPRequestHandler):
         self.copyfile(file, self.wfile)
         file.close()
 
+    @suppress_connection_errors
     def _respond(self, method: str, path: str, query: str) -> None:
         for route_pattern, meta in self.routes.items():
             if route_pattern.fullmatch(path):
@@ -62,9 +63,10 @@ class RequestHandler(SimpleHTTPRequestHandler):
                 response = getattr(route_class(path, parse_qs(query), params), method.lower(), None)
                 if not response:
                     return self.send_error()
-                if isinstance(response(), HTTPStatus):
-                    return self._send_head(response())
+                response = response()
+                if isinstance(response, HTTPStatus):
+                    return self._send_head(response)
                 self._send_head(HTTPStatus.ACCEPTED)
-                self.wfile.write(response().encode('UTF-8'))
+                self.wfile.write(response.encode('UTF-8'))
                 return
         self.send_error(HTTPStatus.NOT_FOUND)
