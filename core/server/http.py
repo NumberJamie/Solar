@@ -1,4 +1,3 @@
-import uuid
 from http import HTTPStatus, HTTPMethod
 from http.server import SimpleHTTPRequestHandler
 from os import PathLike
@@ -6,8 +5,7 @@ from urllib.parse import urlparse, parse_qs
 
 from core.decorators import suppress_connection_errors
 from core.server.routes import urls, url_route
-from core.session import session
-from core.templates.template import BaseTemplate
+from core.templates import base_template
 from core.values import *
 
 
@@ -21,15 +19,12 @@ class RequestHandler(SimpleHTTPRequestHandler):
 
     def _send_head(self, status: HTTPStatus) -> None:
         self.send_response(status.value, status.phrase)
-        response = session.set_cookie(self.headers.get('Cookie', '').split('; '))
-        if isinstance(response, str):
-            self.send_header('Set-Cookie', response)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
 
     def send_error(self, code: HTTPStatus = HTTPStatus.NOT_FOUND, message: str = None, explain: str = None) -> None:
         self._send_head(code)
-        self.wfile.write(BaseTemplate('', {}, {}).error(code).encode('UTF-8'))
+        self.wfile.write(base_template.error(code).encode('UTF-8'))
 
     @suppress_connection_errors
     def do_GET(self) -> None:
@@ -52,6 +47,7 @@ class RequestHandler(SimpleHTTPRequestHandler):
                 return str(Path(directory) / path[len(prefix):].lstrip('/'))
         return super().translate_path(path)
 
+    @suppress_connection_errors
     def _handle_file_request(self) -> None:
         file = self.send_head()
         if not file:

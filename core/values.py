@@ -9,3 +9,4 @@ STATIC_URL: str = '/static'
 STATIC_DIR: str = f'{PROJECT_PATH}/static'
 
 TEMPLATES: str = f'{PROJECT_PATH}/templates'
+DB_FILE: str = f'{PROJECT_PATH}/db.sqlite3'

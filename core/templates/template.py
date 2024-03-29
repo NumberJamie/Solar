@@ -6,14 +6,26 @@ from core.values import TEMPLATES
 
 
 class BaseTemplate:
-    template = 'error.html'
-
-    def __init__(self, path: str, query: dict, params: dict):
+    def __init__(self):
         self.env = Environment(
             loader=FileSystemLoader(TEMPLATES),
             autoescape=select_autoescape()
         )
+
+    def error(self, status: HTTPStatus) -> str:
+        return self.env.get_template('error.html').render(code=status.value, message=status.phrase)
+
+
+base_template = BaseTemplate()
+
+
+class Template(base_template):
+    template = 'error.html'
+
+    def __init__(self, path: str, query: dict, params: dict, session_id: str):
+        super().__init__()
         self.query = query
+        self.session_id = session_id
         self.params = self.__construct_route_params(path, params)
         self.page = int(self.query.get('page', ['1'])[0])
 
@@ -47,6 +59,3 @@ class BaseTemplate:
                 continue
             query_parts.extend([f'{key}={val}' for val in values])
         return '?' + '&'.join(query_parts)
-
-    def error(self, status: HTTPStatus) -> str:
-        return self.env.get_template('error.html').render(code=status.value, message=status.phrase)

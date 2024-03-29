@@ -1,9 +1,9 @@
 import re
 
-from core.templates.template import BaseTemplate
+from core.templates.template import Template
 
 urls = [
-    ('/home', BaseTemplate),
+    ('/home', Template),
 ]
 
 
